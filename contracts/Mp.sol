@@ -1,16 +1,18 @@
 pragma solidity ^0.8.0;
 
 
-import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 import "./Order.sol";
 
-contract Mp is ERC165Storage {
+contract Mp {
 
     event OrderCreated(uint numberInList);
     event OrderCancelled(uint numberInList);
 
     Order[] public orders;
 
+    function ordersAmount() public view returns (uint) {
+        return orders.length;
+    }
 
     function createOrder(uint lockValue, string memory ipfsDetails) public payable {
         require(msg.value > 0, "reward must be set");
