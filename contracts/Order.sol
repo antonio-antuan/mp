@@ -24,6 +24,7 @@ contract Order is OwnableTxOrigin {
     struct candidate {
         address addr;
         bool notRejected;
+        uint lockedValue;
     }
 
     candidate[] public candidates;
@@ -40,8 +41,13 @@ contract Order is OwnableTxOrigin {
     }
 
     function becomeCandidate(address _cand) public payable requireState(OrderState.Created) {
+        require(_cand != owner(), "owner of order can't be a candidate");
         require(msg.value >= lockValue, "value must be greater or equal than order lockValue");
-        candidates.push(candidate({addr: _cand, notRejected: true}));
+        if (candidates.length > 0) {
+            candidate memory pc = candidates[candidateAddrToPosition[_cand]];
+            require(pc.addr != _cand || !pc.notRejected, "already a candidate"); // todo: otherwise overwrite candidate?
+        }
+        candidates.push(candidate({addr: _cand, notRejected: true, lockedValue: msg.value}));
         candidateAddrToPosition[_cand] = candidates.length-1;
     }
 
@@ -50,7 +56,7 @@ contract Order is OwnableTxOrigin {
         require(c.addr == _cand, "invalid candidate specified");
         require(c.notRejected, "already rejected");
         c.notRejected = false;
-        payable(c.addr).transfer(lockValue);
+        payable(c.addr).transfer(c.lockedValue);
     }
 
     function chooseCandidate(address _addr) public onlyOwner requireState(OrderState.Created) {
@@ -74,9 +80,7 @@ contract Order is OwnableTxOrigin {
     }
 
     modifier requireState(OrderState req) {
-        if (state != req) {
-            revert InvalidState(req, state);
-        }
+        require(state == req, "invalid order state");
         _;
     }
 }

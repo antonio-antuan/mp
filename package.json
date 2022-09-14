@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "@openzeppelin/contracts": "^4.7.3",
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "custom-error-test-helper": "^1.0.5"
+  }
+}

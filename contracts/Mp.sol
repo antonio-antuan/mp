@@ -7,6 +7,8 @@ contract Mp {
 
     event OrderCreated(uint numberInList);
     event OrderCancelled(uint numberInList);
+    event OrderCandidateCreated(uint numberInList);
+    event OrderCandidateRejected(uint numberInList);
 
     Order[] public orders;
 
@@ -27,10 +29,17 @@ contract Mp {
         emit OrderCancelled(idx);
     }
 
-    function acceptOrder(uint idx) public payable {
+    function becomeCandidate(uint idx) public payable {
         Order o = getOrder(idx);
         require(msg.value >= o.lockValue(), "value must be greater or equal than order lockValue");
         o.becomeCandidate{value: msg.value}(msg.sender);
+        emit OrderCandidateCreated(idx);
+    }
+
+    function cancelBeingCandidate(uint idx) public payable {
+        Order o = getOrder(idx);
+        o.cancelBeingCandidate(msg.sender);
+        emit OrderCandidateRejected(idx);
     }
 
     function getOrder(uint idx) internal view returns (Order) {
