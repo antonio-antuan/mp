@@ -9,6 +9,7 @@ contract Order is OwnableTxOrigin {
         Cancelled,
         AwaitingExecutorApproval,
         Accepted,
+        Ready,
         Completed,
         Failed
     }
@@ -41,6 +42,7 @@ contract Order is OwnableTxOrigin {
     }
 
     function becomeCandidate(address _cand) public payable requireState(OrderState.Created) {
+        checkOriginIsAddress(_cand);
         require(_cand != owner(), "owner of order can't be a candidate");
         require(msg.value >= lockValueInWei, "value must be greater or equal than order lockValue");
         if (candidates.length > 0) {
@@ -52,6 +54,7 @@ contract Order is OwnableTxOrigin {
     }
 
     function cancelBeingCandidate(address _cand) public requireState(OrderState.Created) {
+        checkOriginIsAddress(_cand);
         candidate storage c = candidates[candidateAddrToPosition[_cand]];
         require(c.addr == _cand, "invalid candidate specified");
         require(c.notRejected, "already rejected");
@@ -84,8 +87,38 @@ contract Order is OwnableTxOrigin {
         _;
     }
 
-    function approveByExecutor(address _executor) public requireState(OrderState.AwaitingExecutorApproval) {
-        require(executor == _executor, "can be approved only by executor");
+    function checkOriginIsAddress(address _addr) view internal{
+        require(_addr == _txOrigin(), "invalid origin of transaction");
+    }
+
+    modifier onlyExecutor(address _executor) {
+        require(executor == _executor, "only for executor");
+        checkOriginIsAddress(_executor);
+        _;
+    }
+
+    function approveByExecutor(address _executor) public requireState(OrderState.AwaitingExecutorApproval) onlyExecutor(_executor) {
         state = OrderState.Accepted;
+    }
+
+    function cancelByExecutor(address _executor) public requireState(OrderState.AwaitingExecutorApproval) onlyExecutor(_executor) {
+        state = OrderState.Created;
+        executor = address(0);
+    }
+
+    function markAsReady(address _executor) public requireState(OrderState.Accepted) onlyExecutor(_executor) {
+        state = OrderState.Ready;
+    }
+
+    function markAsFailed(address _executor) public requireState(OrderState.Accepted) onlyExecutor(_executor) {
+        state = OrderState.Failed;
+        candidate memory c = candidates[candidateAddrToPosition[_executor]];
+        require(c.addr == _executor, "invalid executor");
+        payable(owner()).transfer(c.lockedValueInWei);
+    }
+
+    function markAsCompleted() public requireState(OrderState.Ready) onlyOwner {
+        state = OrderState.Completed;
+        payable(executor).transfer(reward);
     }
 }

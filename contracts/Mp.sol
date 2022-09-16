@@ -3,12 +3,20 @@ pragma solidity ^0.8.0;
 
 import "./Order.sol";
 
+// todo: naming
+// todo: reputation
+// todo: court
 contract Mp {
 
     event OrderCreated(uint numberInList);
     event OrderCancelled(uint numberInList);
     event OrderCandidateCreated(uint numberInList);
     event OrderCandidateRejected(uint numberInList);
+    event OrderApprovedByExecutor(uint numberInList);
+    event OrderCanceledByExecutor(uint numberInList);
+    event OrderReady(uint numberInList);
+    event OrderFailed(uint numberInList);
+    event OrderCompleted(uint numberInList);
 
     Order[] public orders;
 
@@ -51,4 +59,33 @@ contract Mp {
         o.chooseCandidate(_addr);
     }
 
+    function approveByExecutor(uint idx) public {
+        Order o = getOrder(idx);
+        o.approveByExecutor(msg.sender);
+        emit OrderApprovedByExecutor(idx);
+    }
+
+    function cancelByExecutor(uint idx) public {
+        Order o = getOrder(idx);
+        o.cancelByExecutor(msg.sender);
+        emit OrderCanceledByExecutor(idx);
+    }
+
+    function markAsReady(uint idx) public {
+        Order o = getOrder(idx);
+        o.markAsReady(msg.sender);
+        emit OrderReady(idx);
+    }
+
+    function markAsFailed(uint idx) public {
+        Order o = getOrder(idx);
+        o.markAsFailed(msg.sender);
+        emit OrderFailed(idx);
+    }
+
+    function markAsDone(uint idx) public {
+        Order o = getOrder(idx);
+        o.markAsCompleted();
+        emit OrderCompleted(idx);
+    }
 }

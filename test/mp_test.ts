@@ -22,6 +22,7 @@ const createOrder = async (mp: Mp, addr: SignerWithAddress, val: string = value,
 }
 
 
+const invalidStateErr = 'invalid order state'
 const value = '0.0001';
 const gwei = parseEth(value)
 
@@ -44,6 +45,8 @@ class Fixtures {
 }
 
 describe("Mp contract", function () {
+    // todo: check emitted events
+    // todo: create order not by contract owner
     async function deployTokenFixture(): Promise<Fixtures> {
         const mpFactory = await ethers.getContractFactory("Mp");
         const order = await ethers.getContractFactory("Order");
@@ -113,7 +116,7 @@ describe("Mp contract", function () {
         const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
         await createOrder(Mp, owner);
         await Mp.cancelOrder(0, {from: owner.address});
-        await expect(Mp.connect(candidate1).becomeCandidate(0, {value: gwei})).to.be.revertedWith('invalid order state');
+        await expect(Mp.connect(candidate1).becomeCandidate(0, {value: gwei})).to.be.revertedWith(invalidStateErr);
     })
 
     it("should become candidate", async () => {
@@ -123,7 +126,7 @@ describe("Mp contract", function () {
     })
 
     it("owner can't be candidate", async () => {
-        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        const {owner, Mp} = await loadFixture(deployTokenFixture)
         await createOrder(Mp, owner);
         await expect(Mp.connect(owner).becomeCandidate(0, {value: gwei})).revertedWith("owner of order can't be a candidate")
     })
@@ -215,7 +218,113 @@ describe("Mp contract", function () {
         await Mp.connect(candidate2).becomeCandidate(0, {value: gwei});
         await Mp.connect(candidate3).becomeCandidate(0, {value: gwei});
         await expect(Mp.chooseCandidate(0, candidate2.address)).to.changeEtherBalance(candidate1, gwei).to.changeEtherBalance(candidate3, gwei);
-        await expect(Mp.chooseCandidate(0, candidate2.address)).to.revertedWith("invalid order state");
+        await expect(Mp.chooseCandidate(0, candidate2.address)).to.revertedWith(invalidStateErr);
+    })
+
+    it("should approved by executor", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.chooseCandidate(0, candidate1.address);
+
+        await Mp.connect(candidate1).approveByExecutor(0)
+    })
+
+    it("should approved by executor", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+
+        await expect(Mp.connect(candidate1).approveByExecutor(0)).to.revertedWith(invalidStateErr);
+    })
+
+    it("can't cancel approved order", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).approveByExecutor(0);
+
+        await expect(Mp.cancelOrder(0)).to.revertedWith(invalidStateErr)
+    })
+
+    it("can't cancel being candidate", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).approveByExecutor(0);
+
+        await expect(Mp.connect(candidate1).cancelBeingCandidate(0)).to.revertedWith(invalidStateErr);
+    })
+
+    it("can't change candidate after approve", async () => {
+        const {owner, Mp, candidate1, candidate2} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.connect(candidate2).becomeCandidate(0, {value: gwei});
+        await Mp.chooseCandidate(0, candidate1.address);
+        await expect(Mp.chooseCandidate(0, candidate2.address)).to.revertedWith(invalidStateErr);
+    })
+
+    it("should cancel by executor and assign to another candidate", async () => {
+        const {owner, Mp, candidate1, candidate2} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.connect(candidate2).becomeCandidate(0, {value: gwei});
+
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).cancelByExecutor(0);
+
+        await Mp.chooseCandidate(0, candidate2.address);
+        await Mp.connect(candidate2).cancelByExecutor(0);
+
+        await Mp.chooseCandidate(0, candidate2.address);
+        await Mp.connect(candidate2).approveByExecutor(0);
+    })
+
+    it("should mark as ready", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).approveByExecutor(0);
+
+        await Mp.connect(candidate1).markAsReady(0);
+    })
+
+
+    it("should mark as failed", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        await createOrder(Mp, owner);
+
+        const locked = parseEth("1");
+        await Mp.connect(candidate1).becomeCandidate(0, {value: locked});
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).approveByExecutor(0);
+
+        await expect(Mp.connect(candidate1).markAsFailed(0)).to.changeEtherBalance(owner, locked);
+    })
+
+    it("should mark as completed", async () => {
+        const {owner, Mp, candidate1} = await loadFixture(deployTokenFixture)
+        const reward = "1"
+        await createOrder(Mp, owner, reward);
+
+        await Mp.connect(candidate1).becomeCandidate(0, {value: gwei});
+        await Mp.chooseCandidate(0, candidate1.address);
+        await Mp.connect(candidate1).approveByExecutor(0);
+        await Mp.connect(candidate1).markAsReady(0);
+
+        await expect(Mp.markAsDone(0)).to.changeEtherBalance(candidate1, parseEth(reward));
     })
 
 });
