@@ -16,9 +16,8 @@ contract Mp {
         return orders.length;
     }
 
-    function createOrder(uint lockValue, string memory ipfsDetails) public payable {
-        require(msg.value > 0, "reward must be set");
-        Order o = new Order{value: msg.value}(lockValue, ipfsDetails);
+    function createOrder(uint lockValueInWei, string memory ipfsDetails) public payable {
+        Order o = new Order{value: msg.value}(lockValueInWei, ipfsDetails);
         orders.push(o);
         emit OrderCreated(orders.length-1);
     }
@@ -31,7 +30,6 @@ contract Mp {
 
     function becomeCandidate(uint idx) public payable {
         Order o = getOrder(idx);
-        require(msg.value >= o.lockValue(), "value must be greater or equal than order lockValue");
         o.becomeCandidate{value: msg.value}(msg.sender);
         emit OrderCandidateCreated(idx);
     }
@@ -42,7 +40,7 @@ contract Mp {
         emit OrderCandidateRejected(idx);
     }
 
-    function getOrder(uint idx) internal view returns (Order) {
+    function getOrder(uint idx) public view returns (Order) {
         require(idx >= 0, "index of order must be greater than zero");
         require(idx < orders.length, "index of order must be less than orders amount");
         return orders[idx];
