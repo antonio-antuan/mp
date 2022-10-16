@@ -2,7 +2,8 @@ pragma solidity ^0.8.0;
 
 import "./OwnableTxOrigin.sol";
 
-
+// todo: validate doers here somehow or warn about unknown doer?
+// todo: order cateogory. supported categories contract.
 contract Order is OwnableTxOrigin {
     enum OrderState {
         Created,
@@ -14,6 +15,8 @@ contract Order is OwnableTxOrigin {
         Failed
     }
 
+    address internal mpAddress;
+    uint public priority;
     uint public lockValueInWei;
     uint public reward;
     string public ipfsDetails;
@@ -79,7 +82,7 @@ contract Order is OwnableTxOrigin {
 
     function cancel() public onlyOwner requireState(OrderState.Created) {
         state = OrderState.Cancelled;
-        payable(owner()).transfer(lockValueInWei);
+        payable(owner()).transfer(reward);
     }
 
     modifier requireState(OrderState req) {
@@ -120,5 +123,9 @@ contract Order is OwnableTxOrigin {
     function markAsCompleted() public requireState(OrderState.Ready) onlyOwner {
         state = OrderState.Completed;
         payable(executor).transfer(reward);
+    }
+
+    function increasePriority() public onlyOwner {
+        priority += 1;
     }
 }
