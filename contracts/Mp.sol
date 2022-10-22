@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import './Order.sol';
+import "./Order.sol";
 
 import "./IParticipants.sol";
 import "./ICommission.sol";
@@ -15,14 +15,19 @@ import "./IOrders.sol";
 // todo: court
 // todo: valid math
 contract Mp is Ownable {
+    ISet internal ordersToDo;
+    ICommission public commissions;
+    IParticipants public participants;
+    IReputation public reputation;
+    IOrders public orders;
 
-    ISet ordersToDo;
-    ICommission commissions;
-    IParticipants participants;
-    IReputation reputation;
-    IOrders orders;
-
-    constructor(address _participants, address _set, address _comm, address _irep, address _orders) {
+    constructor(
+        address _participants,
+        address _set,
+        address _comm,
+        address _irep,
+        address _orders
+    ) {
         participants = IParticipants(_participants);
         ordersToDo = ISet(_set);
         commissions = ICommission(_comm);
@@ -42,31 +47,46 @@ contract Mp is Ownable {
         ordersToDo = ISet(_contractAddress);
     }
 
-    function changeCommissionsAddress(address _contractAddress) public onlyOwner {
+    function changeCommissionsAddress(address _contractAddress)
+        public
+        onlyOwner
+    {
         commissions = ICommission(_contractAddress);
     }
 
-    function ordersCount() public view returns (uint) {
+    function ordersCount() public view returns (uint256) {
         return orders.count();
     }
 
-    function getPendingOrdersBatch(uint8 limit, uint8 offset) public view returns (uint[] memory ) {
-        uint[] memory indices = ordersToDo.indices();
-        uint from = limit * offset;
-        uint[] memory res = new uint256[](limit);
-        for (uint i = from; i < from + limit; i++) {
+    function getPendingOrdersBatch(uint8 limit, uint8 offset)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory indices = ordersToDo.indices();
+        uint256 from = limit * offset;
+        uint256[] memory res = new uint256[](limit);
+        for (uint256 i = from; i < from + limit; i++) {
             res[res.length] = indices[i];
         }
         return res;
     }
 
-    function createOrder(uint lockValueInWei, string memory ipfsDetails) public payable {
-        uint num;
-        (, num) = orders.createOrder{value: msg.value}(tx.origin, msg.value, lockValueInWei, ipfsDetails);
+    function createOrder(uint256 lockValueInWei, string memory ipfsDetails)
+        public
+        payable
+    {
+        uint256 num;
+        (, num) = orders.createOrder{value: msg.value}(
+            tx.origin,
+            msg.value,
+            lockValueInWei,
+            ipfsDetails
+        );
         ordersToDo.insert(num);
     }
 
-    function cancelOrder(uint idx) public {
+    function cancelOrder(uint256 idx) public {
         orders.cancel(idx);
         ordersToDo.remove(idx);
     }
@@ -76,39 +96,47 @@ contract Mp is Ownable {
         require(participants.doerIsValid(msg.sender), "invalid doer");
     }
 
-    function becomeCandidate(uint idx) public payable {
+    function becomeCandidate(uint256 idx) public payable {
         require(participants.doerIsValid(msg.sender), "invalid doer");
         orders.becomeCandidate{value: msg.value}(idx, msg.sender);
     }
 
-    function increaseOrderPriority(uint idx) public payable {
+    function increaseOrderPriority(uint256 idx) public payable {
         Order memory o = orders.getOrder(idx);
-        uint min = minCommissionForPriority(o.priority + 1);
+        uint256 min = minCommissionForPriority(o.priority + 1);
         require(msg.value >= min, "commission is not enough");
         orders.increasePriority(idx);
     }
 
-    function minCommissionForPriority(uint prior) public view returns (uint) {
+    function minCommissionForPriority(uint256 prior)
+        public
+        view
+        returns (uint256)
+    {
         // todo: commision has to be measured depending on the new order's position in global list
-        uint pendingOrdersAmount = pendingOrdersOfPriorityCount(prior);
+        uint256 pendingOrdersAmount = pendingOrdersOfPriorityCount(prior);
         if (pendingOrdersAmount == 0) {
             pendingOrdersAmount = 1;
         }
-        return (1*commissions.increasePriority())/pendingOrdersAmount;
+        return (1 * commissions.increasePriority()) / pendingOrdersAmount;
     }
 
-    function cancelBeingCandidate(uint idx) public payable {
+    function cancelBeingCandidate(uint256 idx) public payable {
         orders.cancelBeingCandidate(idx, msg.sender);
     }
 
-    function getOrder(uint idx) public view returns (Order memory) {
+    function getOrder(uint256 idx) public view returns (Order memory) {
         return orders.getOrder(idx);
     }
 
-    function pendingOrdersOfPriorityCount(uint priority) public view returns (uint) {
-        uint res = 0;
-        uint[] memory indices = ordersToDo.indices();
-        for (uint i = 0; i < indices.length; i++) {
+    function pendingOrdersOfPriorityCount(uint256 priority)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 res = 0;
+        uint256[] memory indices = ordersToDo.indices();
+        for (uint256 i = 0; i < indices.length; i++) {
             if (orders.getOrder(indices[i]).priority == priority) {
                 res += 1;
             }
@@ -116,30 +144,30 @@ contract Mp is Ownable {
         return res;
     }
 
-    function chooseCandidate(uint idx, address _addr) public {
+    function chooseCandidate(uint256 idx, address _addr) public {
         orders.chooseCandidate(idx, _addr);
     }
 
-    function approveByExecutor(uint idx) public {
+    function approveByExecutor(uint256 idx) public {
         orders.approveByExecutor(idx);
         ordersToDo.remove(idx);
     }
 
-    function cancelByExecutor(uint idx) public {
+    function cancelByExecutor(uint256 idx) public {
         orders.cancelByExecutor(idx);
     }
 
-    function markAsReady(uint idx) public {
+    function markAsReady(uint256 idx) public {
         orders.markAsReady(idx);
     }
 
-    function markAsFailed(uint idx) public {
+    function markAsFailed(uint256 idx) public {
         orders.markAsFailed(idx);
         Order memory o = orders.getOrder(idx);
         participants.changeDoerSuccessRate(o.executor, false);
     }
 
-    function markAsDone(uint idx) public {
+    function markAsDone(uint256 idx) public {
         orders.markAsCompleted(idx);
         Order memory o = orders.getOrder(idx);
         participants.changeDoerSuccessRate(o.executor, true);

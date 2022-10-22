@@ -1,21 +1,20 @@
 pragma solidity ^0.8.0;
 
 struct Order {
-    uint priority;
-    uint lockValueInWei;
-    uint reward;
+    uint256 priority;
+    uint256 lockValueInWei;
+    uint256 reward;
     string ipfsDetails;
     address executor;
     OrderState state;
-
     address owner;
-    candidate[] candidates;
+    Candidate[] candidates;
 }
 
-struct candidate {
+struct Candidate {
     address addr;
     bool notRejected;
-    uint lockedValueInWei;
+    uint256 lockedValueInWei;
 }
 
 enum OrderState {
