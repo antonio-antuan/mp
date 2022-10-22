@@ -52,39 +52,40 @@ class Fixtures {
     }
 }
 
+async function deployTokenFixture(): Promise<Fixtures> {
+    const mpFactory = await ethers.getContractFactory("Mp");
+    const participantsFactory = await ethers.getContractFactory("Participants");
+    const setFactory = await ethers.getContractFactory("Set");
+    const comFactory = await ethers.getContractFactory("Commission");
+    const repFactory = await ethers.getContractFactory("Reputation");
+    const ordersFactory = await ethers.getContractFactory("Orders");
+    const [owner, candidate1, candidate2, candidate3, notADoer] = await ethers.getSigners();
+
+    const participants = await participantsFactory.deploy();
+    await participants.newDoer(owner.address);
+    await participants.newDoer(candidate1.address);
+    await participants.newDoer(candidate2.address);
+    await participants.newDoer(candidate3.address);
+
+    const set = await setFactory.deploy()
+    const com = await comFactory.deploy()
+    const rep = await repFactory.deploy()
+    const orders = await ordersFactory.deploy()
+
+    const mp = await mpFactory.deploy(
+        participants.address,
+        set.address,
+        com.address,
+        rep.address,
+        orders.address,
+    );
+
+    return new Fixtures(mp, participants, owner, candidate1, candidate2, candidate3, notADoer, orders)
+}
+
 describe("Mp contract", function () {
     // todo: check emitted events
     // todo: create order not by contract owner
-    async function deployTokenFixture(): Promise<Fixtures> {
-        const mpFactory = await ethers.getContractFactory("Mp");
-        const participantsFactory = await ethers.getContractFactory("Participants");
-        const setFactory = await ethers.getContractFactory("Set");
-        const comFactory = await ethers.getContractFactory("Commission");
-        const repFactory = await ethers.getContractFactory("Reputation");
-        const ordersFactory = await ethers.getContractFactory("Orders");
-        const [owner, candidate1, candidate2, candidate3, notADoer] = await ethers.getSigners();
-
-        const participants = await participantsFactory.deploy();
-        await participants.newDoer(owner.address);
-        await participants.newDoer(candidate1.address);
-        await participants.newDoer(candidate2.address);
-        await participants.newDoer(candidate3.address);
-
-        const set = await setFactory.deploy()
-        const com = await comFactory.deploy()
-        const rep = await repFactory.deploy()
-        const orders = await ordersFactory.deploy()
-
-        const mp = await mpFactory.deploy(
-            participants.address,
-            set.address,
-            com.address,
-            rep.address,
-            orders.address,
-            );
-
-        return new Fixtures(mp, participants, owner, candidate1, candidate2, candidate3, notADoer, orders)
-    }
 
     it("should create order", async function () {
         const {owner, mp, orders} = await loadFixture(deployTokenFixture)

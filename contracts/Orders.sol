@@ -44,18 +44,10 @@ contract Orders {
         return orders.length;
     }
 
-    function getOrder(uint idx) public returns (uint priority,
-        uint minLockValueInWei,
-        uint reward,
-        string memory ipfsDetails,
-        address executor,
-        OrderState state,
-        address owner,
-        candidate[] memory candidates) {
+    function getOrder(uint idx) public returns (Order memory) {
         require(idx >= 0, "index of order must be greater than zero");
         require(idx < orders.length, "index of order must be less than orders amount");
-        Order memory o = orders[idx];
-        return (o.priority, o.lockValueInWei, o.reward, o.ipfsDetails, o.executor, o.state, o.owner, o.candidates);
+        return orders[idx];
     }
 
     function becomeCandidate(uint idx, address _cand) public payable {
@@ -117,9 +109,9 @@ contract Orders {
 
     function cancelByExecutor(uint idx) public {
         Order storage o = orders[idx];
-        o.state = OrderState.Created;
         require(o.state == OrderState.AwaitingExecutorApproval, "invalid order state");
         require(tx.origin == o.executor, "invalid executor of an order");
+        o.state = OrderState.Created;
         o.executor = address(0);
     }
 

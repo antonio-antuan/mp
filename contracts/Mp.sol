@@ -82,9 +82,8 @@ contract Mp is Ownable {
     }
 
     function increaseOrderPriority(uint idx) public payable {
-        uint priority;
-        (priority,,,,,,,) = orders.getOrder(idx);
-        uint min = minCommissionForPriority(priority + 1);
+        Order memory o = orders.getOrder(idx);
+        uint min = minCommissionForPriority(o.priority + 1);
         require(msg.value >= min, "commission is not enough");
         orders.increasePriority(idx);
     }
@@ -102,14 +101,7 @@ contract Mp is Ownable {
         orders.cancelBeingCandidate(idx, msg.sender);
     }
 
-    function getOrder(uint idx) public view returns (uint priority,
-        uint minLockValueInWei,
-        uint reward,
-        string memory ipfsDetails,
-        address executor,
-        OrderState state,
-        address owner,
-        candidate[] memory candidates) {
+    function getOrder(uint idx) public view returns (Order memory) {
         return orders.getOrder(idx);
     }
 
@@ -117,9 +109,7 @@ contract Mp is Ownable {
         uint res = 0;
         uint[] memory indices = ordersToDo.indices();
         for (uint i = 0; i < indices.length; i++) {
-            uint priority;
-            (priority,,,,,,,) = orders.getOrder(indices[i]);
-            if (priority == priority) {
+            if (orders.getOrder(indices[i]).priority == priority) {
                 res += 1;
             }
         }
@@ -145,15 +135,13 @@ contract Mp is Ownable {
 
     function markAsFailed(uint idx) public {
         orders.markAsFailed(idx);
-        address executor;
-        (,,,,executor,,,) = orders.getOrder(idx);
-        participants.changeDoerSuccessRate(executor, false);
+        Order memory o = orders.getOrder(idx);
+        participants.changeDoerSuccessRate(o.executor, false);
     }
 
     function markAsDone(uint idx) public {
         orders.markAsCompleted(idx);
-        address executor;
-        (,,,,executor,,,) = orders.getOrder(idx);
-        participants.changeDoerSuccessRate(executor, true);
+        Order memory o = orders.getOrder(idx);
+        participants.changeDoerSuccessRate(o.executor, true);
     }
 }
