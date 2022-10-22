@@ -64,8 +64,15 @@ contract Mp is Ownable {
         returns (uint256[] memory)
     {
         uint256[] memory indices = ordersToDo.indices();
+        if (indices.length == 0) {
+            return new uint256[](0);
+        }
         uint256 from = limit * offset;
-        uint256[] memory res = new uint256[](limit);
+        uint256 to = from + limit;
+        if (to > indices.length-1) {
+            to = indices.length-1;
+        }
+        uint256[] memory res = new uint256[](to-from);
         for (uint256 i = from; i < from + limit; i++) {
             res[res.length] = indices[i];
         }
