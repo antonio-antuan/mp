@@ -5,7 +5,7 @@ import {loadFixture} from "@nomicfoundation/hardhat-network-helpers";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {BigNumber} from "@ethersproject/bignumber";
 import {ContractTransaction} from "ethers";
-import {Mp, Orders, Participants} from "../typechain-types";
+import {Mp, Orders, Participants} from "../src/typechain";
 
 
 const getBalance = async (acc: string): Promise<BigNumber> => {
@@ -87,9 +87,23 @@ describe("Mp contract", function () {
     // todo: check emitted events
     // todo: create order not by contract owner
 
-    it("should create order", async function () {
+    it("no pending orders", async function() {
+        const {mp} = await loadFixture(deployTokenFixture)
+
+        expect(await mp.getPendingOrdersBatch(0, 0)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(0, 1)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(1, 0)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(1, 1)).length(0, "invalid amount")
+    })
+
+    it.only("should create order", async function () {
         const {owner, mp, orders} = await loadFixture(deployTokenFixture)
         await expect(createOrder(mp, owner)).to.emit(orders, "OrderCreated");
+        expect(await mp.getPendingOrdersBatch(0, 0)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(0, 1)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(1, 1)).length(0, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(1, 0)).length(1, "invalid amount")
+        expect(await mp.getPendingOrdersBatch(3, 0)).length(1, "invalid amount")
 
         expect(await mp.ordersCount()).to.equal(1);
 

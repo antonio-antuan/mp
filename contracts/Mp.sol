@@ -2,6 +2,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "hardhat/console.sol";
+
 import "./Order.sol";
 
 import "./IParticipants.sol";
@@ -63,18 +65,29 @@ contract Mp is Ownable {
         view
         returns (uint256[] memory)
     {
+        if (limit == 0) {
+            return new uint256[](0);
+        }
         uint256[] memory indices = ordersToDo.indices();
         if (indices.length == 0) {
             return new uint256[](0);
         }
         uint256 from = limit * offset;
-        uint256 to = from + limit;
-        if (to > indices.length-1) {
-            to = indices.length-1;
+        if (from > indices.length-1) {
+            return new uint256[](0);
         }
+
+        uint256 to = from+limit;
+        if (to > indices.length) {
+            to = indices.length;
+        }
+
         uint256[] memory res = new uint256[](to-from);
-        for (uint256 i = from; i < from + limit; i++) {
-            res[res.length] = indices[i];
+
+        uint16 x = 0;
+        for (uint256 i = from; i < to; i++) {
+            res[x] = indices[i];
+            x++;
         }
         return res;
     }
@@ -91,6 +104,7 @@ contract Mp is Ownable {
             ipfsDetails
         );
         ordersToDo.insert(num);
+        console.log(ordersToDo.indices()[0]);
     }
 
     function cancelOrder(uint256 idx) public {

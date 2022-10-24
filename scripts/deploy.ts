@@ -13,9 +13,10 @@ async function main() {
     const com = await comFactory.deploy()
     const rep = await repFactory.deploy()
     const orders = await ordersFactory.deploy()
-    await mpFactory.deploy(part.address, set.address, com.address, rep.address, orders.address);
 
-    console.log(`Deployed`);
+    let mp = await mpFactory.deploy(part.address, set.address, com.address, rep.address, orders.address);
+
+    console.log(`Deployed, address: ${mp.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -31,6 +31,7 @@ contract Orders {
         require(msg.value > 0, "reward must be set");
         uint256 num = orders.length;
         Order storage o = orders.push();
+        o.position = num;
         o.lockValueInWei = _minLockValueInWei;
         o.reward = msg.value;
         o.ipfsDetails = _ipfsDetails;
