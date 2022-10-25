@@ -65,27 +65,28 @@ contract Mp is Ownable {
         view
         returns (uint256[] memory)
     {
+        console.log("limit", limit);
+        console.log("offset", offset);
         if (limit == 0) {
             return new uint256[](0);
         }
+
         uint256[] memory indices = ordersToDo.indices();
-        if (indices.length == 0) {
-            return new uint256[](0);
-        }
-        uint256 from = limit * offset;
-        if (from > indices.length-1) {
+        if (indices.length == 0 || offset > indices.length-1) {
             return new uint256[](0);
         }
 
-        uint256 to = from+limit;
+        uint256 to = offset+limit;
         if (to > indices.length) {
             to = indices.length;
         }
 
-        uint256[] memory res = new uint256[](to-from);
+        uint256[] memory res = new uint256[](to-offset);
 
         uint16 x = 0;
-        for (uint256 i = from; i < to; i++) {
+        console.log("to", to);
+        console.log("len", indices.length);
+        for (uint256 i = offset; i < to; i++) {
             res[x] = indices[i];
             x++;
         }
@@ -104,7 +105,6 @@ contract Mp is Ownable {
             ipfsDetails
         );
         ordersToDo.insert(num);
-        console.log(ordersToDo.indices()[0]);
     }
 
     function cancelOrder(uint256 idx) public {

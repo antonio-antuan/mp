@@ -87,7 +87,7 @@ describe("Mp contract", function () {
     // todo: check emitted events
     // todo: create order not by contract owner
 
-    it("no pending orders", async function() {
+    it.only("no pending orders", async function() {
         const {mp} = await loadFixture(deployTokenFixture)
 
         expect(await mp.getPendingOrdersBatch(0, 0)).length(0, "invalid amount")
@@ -96,7 +96,7 @@ describe("Mp contract", function () {
         expect(await mp.getPendingOrdersBatch(1, 1)).length(0, "invalid amount")
     })
 
-    it.only("should create order", async function () {
+    it("should create order", async function () {
         const {owner, mp, orders} = await loadFixture(deployTokenFixture)
         await expect(createOrder(mp, owner)).to.emit(orders, "OrderCreated");
         expect(await mp.getPendingOrdersBatch(0, 0)).length(0, "invalid amount")

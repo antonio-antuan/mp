@@ -41,6 +41,7 @@ export type CandidateStructOutput = [string, boolean, BigNumber] & {
 };
 
 export type OrderStruct = {
+  position: PromiseOrValue<BigNumberish>;
   priority: PromiseOrValue<BigNumberish>;
   lockValueInWei: PromiseOrValue<BigNumberish>;
   reward: PromiseOrValue<BigNumberish>;
@@ -55,12 +56,14 @@ export type OrderStructOutput = [
   BigNumber,
   BigNumber,
   BigNumber,
+  BigNumber,
   string,
   string,
   number,
   string,
   CandidateStructOutput[]
 ] & {
+  position: BigNumber;
   priority: BigNumber;
   lockValueInWei: BigNumber;
   reward: BigNumber;

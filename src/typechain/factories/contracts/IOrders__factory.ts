@@ -142,6 +142,11 @@ const _abi = [
         components: [
           {
             internalType: "uint256",
+            name: "position",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
             name: "priority",
             type: "uint256",
           },
@@ -223,6 +228,11 @@ const _abi = [
     outputs: [
       {
         components: [
+          {
+            internalType: "uint256",
+            name: "position",
+            type: "uint256",
+          },
           {
             internalType: "uint256",
             name: "priority",
